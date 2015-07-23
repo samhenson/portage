@@ -142,11 +142,11 @@ src_configure() {
 }
 
 src_prepare() {
-	epatch "${FILESDIR}/0001-glacier-cli-name.patch"
-	epatch "${FILESDIR}/0002-glacier-vault-name.patch"
-	epatch "${FILESDIR}/0003-glacier-vault-no-create.patch"
-	epatch "${FILESDIR}/0004-rsync-dir-name.patch"
-	epatch "${FILESDIR}/0005-s3-bucket-name.patch"
+	epatch "${FILESDIR}/${PV}/0001-glacier-cli-name.patch"
+	epatch "${FILESDIR}/${PV}/0002-glacier-vault-name.patch"
+	epatch "${FILESDIR}/${PV}/0003-glacier-vault-no-create.patch"
+	epatch "${FILESDIR}/${PV}/0004-rsync-dir-name.patch"
+	epatch "${FILESDIR}/${PV}/0005-s3-bucket-name.patch"
 }
 
 src_compile() {
