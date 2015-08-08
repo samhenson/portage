@@ -1,0 +1,43 @@
+From 7d4bb352737e9e522e31ad782c0a13009b989c0a Mon Sep 17 00:00:00 2001
+From: Sam Henson <sam@ranger.is>
+Date: Wed, 13 May 2015 21:05:04 -0400
+Subject: [PATCH 3/5] do not automatically create glacier vault - a locked-down
+ IAM user will not have permission
+
+---
+ Remote/Glacier.hs | 12 ------------
+ 1 file changed, 12 deletions(-)
+
+diff --git a/Remote/Glacier.hs b/Remote/Glacier.hs
+index da49f4c347c6..685d20d8946a 100644
+--- a/Remote/Glacier.hs
++++ b/Remote/Glacier.hs
+@@ -101,8 +101,6 @@ glacierSetup' enabling u mcreds c = do
+ 	(c', encsetup) <- encryptionSetup c
+ 	c'' <- setRemoteCredPair encsetup c' (AWS.creds u) mcreds
+ 	let fullconfig = c'' `M.union` defaults
+-	unless enabling $
+-		genVault fullconfig u
+ 	gitConfigSpecialRemote u fullconfig "glacier" "true"
+ 	return (fullconfig, u)
+   where
+@@ -259,16 +257,6 @@ archive r k = fileprefix ++ key2file k
+   where
+ 	fileprefix = M.findWithDefault "" "fileprefix" $ config r
+ 
+-genVault :: RemoteConfig -> UUID -> Annex ()
+-genVault c u = unlessM (runGlacier c u params) $
+-	error "Failed creating glacier vault."
+-  where
+-	params = 
+-		[ Param "vault"
+-		, Param "create"
+-		, Param $ getVault c
+-		]
+-
+ {- Partitions the input list of keys into ones which have
+  - glacier retieval jobs that have succeeded, or failed.
+  -
+-- 
+2.4.6
+

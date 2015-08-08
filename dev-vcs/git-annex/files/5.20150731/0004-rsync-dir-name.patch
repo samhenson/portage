@@ -1,0 +1,51 @@
+From dbd6fd16bfe39b3ff82986387b76895c736cddea Mon Sep 17 00:00:00 2001
+From: Sam Henson <sam@ranger.is>
+Date: Thu, 14 May 2015 06:59:08 -0400
+Subject: [PATCH 4/5] add append-uuid option to rsync remotes
+
+---
+ Remote/Rsync.hs | 22 +++++++++++++++++-----
+ 1 file changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/Remote/Rsync.hs b/Remote/Rsync.hs
+index be9629b26d26..93b136f4ad14 100644
+--- a/Remote/Rsync.hs
++++ b/Remote/Rsync.hs
+@@ -136,17 +136,29 @@ rsyncTransport gc url
+ 	loginopt = maybe [] (\l -> ["-l",l]) login
+ 	fromNull as xs = if null xs then as else xs
+ 
++setRsyncURL :: RemoteConfig -> String -> RemoteConfig
++setRsyncURL c url = M.insert "rsyncurl" url c
++
++getRsyncURL :: RemoteConfig -> String
++getRsyncURL c = fromMaybe (error "Specify rsyncurl=") $ (M.lookup "rsyncurl" c)
++
++appendUUID :: UUID -> RemoteConfig -> Annex RemoteConfig
++appendUUID u c = return $ setRsyncURL c $ (getRsyncURL c) ++ fromUUID u
++
++maybeAppendUUID :: UUID -> RemoteConfig -> Annex RemoteConfig
++maybeAppendUUID u c = case M.lookup "append-uuid" c of
++	Just "yes" -> appendUUID u (M.delete "append-uuid" c)
++	_ -> return c
++
+ rsyncSetup :: Maybe UUID -> Maybe CredPair -> RemoteConfig -> Annex (RemoteConfig, UUID)
+ rsyncSetup mu _ c = do
+ 	u <- maybe (liftIO genUUID) return mu
+-	-- verify configuration is sane
+-	let url = fromMaybe (error "Specify rsyncurl=") $
+-		M.lookup "rsyncurl" c
+-	(c', _encsetup) <- encryptionSetup c
++	c0 <- maybeAppendUUID u c
++	(c', _encsetup) <- encryptionSetup c0
+ 
+ 	-- The rsyncurl is stored in git config, not only in this remote's
+ 	-- persistant state, so it can vary between hosts.
+-	gitConfigSpecialRemote u c' "rsyncurl" url
++	gitConfigSpecialRemote u c' "rsyncurl" $ getRsyncURL c'
+ 	return (c', u)
+ 
+ {- To send a single key is slightly tricky; need to build up a temporary
+-- 
+2.4.6
+
