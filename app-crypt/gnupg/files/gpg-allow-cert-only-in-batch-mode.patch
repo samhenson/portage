@@ -1,0 +1,11 @@
+--- g10/keygen.c	2015-06-02 04:13:55.000000000 -0400
++++ g10/keygen.c	2015-09-09 06:03:04.380000825 -0400
+@@ -2473,6 +2473,8 @@
+             use |= PUBKEY_USAGE_ENC;
+         else if ( !ascii_strcasecmp (p, "auth") )
+             use |= PUBKEY_USAGE_AUTH;
++        else if ( !ascii_strcasecmp (p, "cert") )
++            use |= PUBKEY_USAGE_CERT;
+         else {
+             log_error("%s:%d: invalid usage list\n", fname, r->lnr );
+             return -1; /* error */
