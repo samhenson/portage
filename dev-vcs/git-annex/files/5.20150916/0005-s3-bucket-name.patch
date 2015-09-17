@@ -1,0 +1,60 @@
+From 863cd978f1cc0db086cd17fda87d75b068c6c992 Mon Sep 17 00:00:00 2001
+From: Sam Henson <sam@ranger.is>
+Date: Thu, 14 May 2015 07:48:11 -0400
+Subject: [PATCH 5/5] add fileprefix and append-uuid options to S3 remotes
+
+---
+ Remote/S3.hs | 23 ++++++++++++++++++-----
+ 1 file changed, 18 insertions(+), 5 deletions(-)
+
+diff --git a/Remote/S3.hs b/Remote/S3.hs
+index fe407f204bcf..a372fe898bad 100644
+--- a/Remote/S3.hs
++++ b/Remote/S3.hs
+@@ -99,15 +99,31 @@ gen r u c gc = do
+ 			, checkUrl = Nothing
+ 			}
+ 
++setFilePrefix :: RemoteConfig -> String -> RemoteConfig
++setFilePrefix c url = M.insert "fileprefix" url c
++
++getFilePrefix :: RemoteConfig -> String
++getFilePrefix c = fromMaybe (error "Specify fileprefix=") $ (M.lookup "fileprefix" c)
++
++appendUUID :: UUID -> RemoteConfig -> Annex RemoteConfig
++appendUUID u c = return $ setFilePrefix c $ (getFilePrefix c) ++ (fromUUID u) ++ "/"
++
++maybeAppendUUID :: UUID -> RemoteConfig -> Annex RemoteConfig
++maybeAppendUUID u c = case M.lookup "append-uuid" c of
++	Just "yes" -> appendUUID u (M.delete "append-uuid" c)
++	_ -> return c
++
+ s3Setup :: Maybe UUID -> Maybe CredPair -> RemoteConfig -> Annex (RemoteConfig, UUID)
+ s3Setup mu mcreds c = do
+ 	u <- maybe (liftIO genUUID) return mu
+-	s3Setup' (isNothing mu) u mcreds c
++	c' <- maybeAppendUUID u c
++	s3Setup' (isNothing mu) u mcreds c'
++
+ s3Setup' :: Bool -> UUID -> Maybe CredPair -> RemoteConfig -> Annex (RemoteConfig, UUID)
+ s3Setup' new u mcreds c = if configIA c then archiveorg else defaulthost
+   where
+ 	remotename = fromJust (M.lookup "name" c)
+-	defbucket = remotename ++ "-" ++ fromUUID u
++	defbucket = "annex-" ++ fromUUID u
+ 	defaults = M.fromList
+ 		[ ("datacenter", T.unpack $ AWS.defaultRegion AWS.S3)
+ 		, ("storageclass", "STANDARD")
+@@ -513,9 +529,6 @@ getMetaHeaders = map munge . filter ismetaheader . M.assocs
+ 	metaprefixlen = length metaprefix
+ 	munge (k, v) = (T.pack $ drop metaprefixlen k, T.pack v)
+ 
+-getFilePrefix :: RemoteConfig -> String
+-getFilePrefix = M.findWithDefault "" "fileprefix"
+-
+ getBucketObject :: RemoteConfig -> Key -> FilePath
+ getBucketObject c = munge . key2file
+   where
+-- 
+2.4.6
+
