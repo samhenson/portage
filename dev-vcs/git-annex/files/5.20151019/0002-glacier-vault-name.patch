@@ -1,0 +1,52 @@
+From b38bc6c18c3fa26c421d87c37d5d6d3b1adc2d2c Mon Sep 17 00:00:00 2001
+From: Sam Henson <sam@ranger.is>
+Date: Wed, 13 May 2015 21:02:19 -0400
+Subject: [PATCH 2/5] add fileprefix and append-uuid options to glacier remotes
+
+---
+ Remote/Glacier.hs | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/Remote/Glacier.hs b/Remote/Glacier.hs
+index 54ed0a98f1f9..89fda328fc9d 100644
+--- a/Remote/Glacier.hs
++++ b/Remote/Glacier.hs
+@@ -79,10 +79,25 @@ gen r u c gc = new <$> remoteCost gc veryExpensiveRemoteCost
+ 		{ chunkConfig = NoChunks
+ 		}
+ 
++setFilePrefix :: RemoteConfig -> String -> RemoteConfig
++setFilePrefix c url = M.insert "fileprefix" url c
++
++getFilePrefix :: RemoteConfig -> String
++getFilePrefix c = fromMaybe (error "Specify fileprefix=") $ (M.lookup "fileprefix" c)
++
++appendUUID :: UUID -> RemoteConfig -> Annex RemoteConfig
++appendUUID u c = return $ setFilePrefix c $ (getFilePrefix c) ++ (fromUUID u) ++ "/"
++
++maybeAppendUUID :: UUID -> RemoteConfig -> Annex RemoteConfig
++maybeAppendUUID u c = case M.lookup "append-uuid" c of
++	Just "yes" -> appendUUID u (M.delete "append-uuid" c)
++	_ -> return c
++
+ glacierSetup :: Maybe UUID -> Maybe CredPair -> RemoteConfig -> Annex (RemoteConfig, UUID)
+ glacierSetup mu mcreds c = do
+ 	u <- maybe (liftIO genUUID) return mu
+-	glacierSetup' (isJust mu) u mcreds c
++	c' <- maybeAppendUUID u c
++	glacierSetup' (isJust mu) u mcreds c'
+ glacierSetup' :: Bool -> UUID -> Maybe CredPair -> RemoteConfig -> Annex (RemoteConfig, UUID)
+ glacierSetup' enabling u mcreds c = do
+ 	(c', encsetup) <- encryptionSetup c
+@@ -94,7 +109,7 @@ glacierSetup' enabling u mcreds c = do
+ 	return (fullconfig, u)
+   where
+ 	remotename = fromJust (M.lookup "name" c)
+-	defvault = remotename ++ "-" ++ fromUUID u
++	defvault = "annex-" ++ fromUUID u
+ 	defaults = M.fromList
+ 		[ ("datacenter", T.unpack $ AWS.defaultRegion AWS.Glacier)
+ 		, ("vault", defvault)
+-- 
+2.4.10
+

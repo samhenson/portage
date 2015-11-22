@@ -1,0 +1,78 @@
+From 903f60d9ea3aeb647f9b6d205622c42e20401d81 Mon Sep 17 00:00:00 2001
+From: Sam Henson <sam@ranger.is>
+Date: Wed, 13 May 2015 20:58:48 -0400
+Subject: [PATCH 1/5] use glacier-cli as the name of the glacier executable
+
+---
+ Remote/Glacier.hs | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/Remote/Glacier.hs b/Remote/Glacier.hs
+index 8529b6341524..54ed0a98f1f9 100644
+--- a/Remote/Glacier.hs
++++ b/Remote/Glacier.hs
+@@ -70,7 +70,7 @@ gen r u c gc = new <$> remoteCost gc veryExpensiveRemoteCost
+ 			, remotetype = remote
+ 			, mkUnavailable = return Nothing
+ 			, getInfo = includeCredsInfo c (AWS.creds u) $
+-				[ ("glacier vault", getVault c) ]
++				[ ("glacier-cli vault", getVault c) ]
+ 			, claimUrl = Nothing
+ 			, checkUrl = Nothing
+ 			}
+@@ -124,7 +124,7 @@ store r k b p = go =<< glacierEnv c u
+ 		]
+ 	go Nothing = return False
+ 	go (Just e) = do
+-		let cmd = (proc "glacier" (toCommand params)) { env = Just e }
++		let cmd = (proc "glacier-cli" (toCommand params)) { env = Just e }
+ 		liftIO $ catchBoolIO $
+ 			withHandle StdinHandle createProcessSuccess cmd $ \h -> do
+ 				meteredWrite p h b
+@@ -147,7 +147,7 @@ retrieve r k sink = go =<< glacierEnv c u
+ 		]
+ 	go Nothing = error "cannot retrieve from glacier"
+ 	go (Just e) = do
+-		let cmd = (proc "glacier" (toCommand params))
++		let cmd = (proc "glacier-cli" (toCommand params))
+ 			{ env = Just e
+ 			, std_out = CreatePipe
+ 			}
+@@ -185,7 +185,7 @@ checkKey r k = do
+ 	go (Just e) = do
+ 		{- glacier checkpresent outputs the archive name to stdout if
+ 		 - it's present. -}
+-		s <- liftIO $ readProcessEnv "glacier" (toCommand params) (Just e)
++		s <- liftIO $ readProcessEnv "glacier-cli" (toCommand params) (Just e)
+ 		let probablypresent = key2file k `elem` lines s
+ 		if probablypresent
+ 			then ifM (Annex.getFlag "trustglacier")
+@@ -215,7 +215,7 @@ runGlacier c u params = go =<< glacierEnv c u
+   where
+ 	go Nothing = return False
+ 	go (Just e) = liftIO $
+-		boolSystemEnv "glacier" (glacierParams c params) (Just e)
++		boolSystemEnv "glacier-cli" (glacierParams c params) (Just e)
+ 
+ glacierParams :: RemoteConfig -> [CommandParam] -> [CommandParam]
+ glacierParams c params = datacenter:params
+@@ -276,7 +276,7 @@ jobList r keys = go =<< glacierEnv (config r) (uuid r)
+ 	go Nothing = return nada
+ 	go (Just e) = do
+ 		v <- liftIO $ catchMaybeIO $ 
+-			readProcessEnv "glacier" (toCommand params) (Just e)
++			readProcessEnv "glacier-cli" (toCommand params) (Just e)
+ 		maybe (return nada) extract v
+ 
+ 	extract s = do
+@@ -313,6 +313,6 @@ checkSaneGlacierCommand =
+ 	whenM ((Nothing /=) <$> catchMaybeIO shouldfail) $
+ 		error wrongcmd
+   where
+-	test = proc "glacier" ["--compatibility-test-git-annex"]
++	test = proc "glacier-cli" ["--compatibility-test-git-annex"]
+ 	shouldfail = withQuietOutput createProcessSuccess test
+ 	wrongcmd = "The glacier program in PATH seems to be from boto, not glacier-cli. Cannot use this program."
+-- 
+2.4.10
+
