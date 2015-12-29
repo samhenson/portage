@@ -64,6 +64,7 @@ RDEPEND="dev-haskell/async:=
 	dns? ( dev-haskell/dns:= )
 	ekg? ( dev-haskell/ekg:= )
 	feed? ( >=dev-haskell/feed-0.3.4:= )
+	glacier? ( dev-python/glacier-cli )
 	network-uri? ( >=dev-haskell/network-2.6:=
 			>=dev-haskell/network-uri-2.6:= )
 	!network-uri? ( >=dev-haskell/network-2.0:= <dev-haskell/network-2.6:= )
